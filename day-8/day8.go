@@ -1,8 +1,11 @@
 package day8
 
 import (
+	"bufio"
 	"fmt"
 	"os"
+	"strconv"
+	"strings"
 	"time"
 )
 
@@ -10,6 +13,43 @@ import (
 //In order to get started, extend main.go so it discovers and runs this file as well
 
 type Day8Solver struct{}
+
+type Instruction struct {
+	index  int
+	inType string
+	amount int
+}
+
+var acc = 0
+
+func Run(i Instruction, tasks []Instruction, already map[int]bool) bool {
+	_, exists := already[i.index]
+	if exists {
+		return false
+	}
+
+	already[i.index] = true
+
+	switch i.inType {
+	case "nop":
+		if i.index == len(tasks)-1 {
+			return true
+		}
+		return Run(tasks[i.index+1], tasks, already)
+	case "acc":
+		acc += i.amount
+		if i.index == len(tasks)-1 {
+			return true
+		}
+		return Run(tasks[i.index+1], tasks, already)
+	case "jmp":
+		if i.index == len(tasks)-1 {
+			return true
+		}
+		return Run(tasks[i.index+i.amount], tasks, already)
+	}
+	return false
+}
 
 func (d Day8Solver) Solve(filename string, answerChan chan int, doneChan chan bool, errorChan chan error) {
 	start := time.Now()
@@ -25,14 +65,74 @@ func (d Day8Solver) Solve(filename string, answerChan chan int, doneChan chan bo
 
 	defer file.Close()
 
-	//scanner := bufio.NewScanner(file)
+	scanner := bufio.NewScanner(file)
 
-	answerChan <- 0
-	answerChan <- 0
+	instructions := []Instruction{}
+
+	i := 0
+	for scanner.Scan() {
+		line := scanner.Text()
+		inst := strings.Split(line, " ")
+		amount, _ := strconv.ParseInt(inst[1], 10, 64)
+
+		instructions = append(instructions, Instruction{
+			index:  i,
+			inType: inst[0],
+			amount: int(amount),
+		})
+		i++
+	}
+
+	alreadyRan := make(map[int]bool)
+
+	Run(instructions[0], instructions, alreadyRan)
+	answerChan <- acc
+
+	fmt.Println("------- task2 -------")
+
+	candidates := make(map[int]Instruction)
+
+	for i := 0; i < len(instructions); i++ {
+		this := instructions[i]
+
+		if this.inType == "jmp" || this.inType == "nop" {
+			candidates[this.index] = this
+		}
+	}
+
+	exited := false
+	for _, can := range candidates {
+		acc = 0
+		modified := append([]Instruction(nil), instructions...)
+		if modified[can.index].inType == "jmp" {
+			modified[can.index].inType = "nop"
+		} else {
+			modified[can.index].inType = "jmp"
+		}
+
+		alreadyRan = make(map[int]bool)
+
+		fmt.Println(can)
+		fmt.Println(modified[can.index])
+		fmt.Println()
+		fmt.Println()
+		exited = Run(modified[0], modified, alreadyRan)
+
+		if exited {
+			break
+		}
+	}
+
+	fmt.Println(candidates)
+
+	answerChan <- acc
 
 	end := time.Now()
 	elapsed := end.Sub(start)
 	fmt.Printf("\n\n⏱️ Execution took %v time! ⏱️\n\n", elapsed)
 
+	time.Sleep(time.Second * 2)
 	doneChan <- true
 }
+
+// 2304
