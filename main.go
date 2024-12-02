@@ -9,6 +9,7 @@ import (
 	day6 "aoc/day-6"
 	day7 "aoc/day-7"
 	day8 "aoc/day-8"
+	day9 "aoc/day-9"
 	"bufio"
 	"fmt"
 	"log"
@@ -64,6 +65,9 @@ func main() {
 	case 8:
 		dayEight := day8.Day8Solver{}
 		taskSolver = dayEight
+	case 9:
+		dayNine := day9.Day9Solver{}
+		taskSolver = dayNine
 	default:
 		if dayNum < 25 && dayNum > 0 {
 			CreateDayFiles(day)
@@ -100,7 +104,7 @@ func main() {
 	doneChan := make(chan bool)
 
 	switch dayNum {
-	case 1, 2, 3, 4, 5, 6, 7, 8:
+	case 1, 2, 3, 4, 5, 6, 7, 8, 9:
 		go taskSolver.Solve(fileName, answerChan, doneChan, errorChan)
 	default:
 		fmt.Println("🟨 This day was not yet implemented! Bummer...")
